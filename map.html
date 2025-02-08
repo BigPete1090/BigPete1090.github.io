@@ -1,1 +1,98 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta http-equiv="X-UA-Compatible" content="ie=edge">
+  <meta name="description" content="Satellite tracker map to explore and learn more about satellites around Earth.">
+  
+  <title>Satellite Tracker</title>
 
+  <!-- Favicon (Optional) -->
+  <link rel="icon" href="favicon.ico" type="image/x-icon">
+
+  <!-- Leaflet CSS -->
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.7.1/dist/leaflet.css" />
+
+  <!-- Custom CSS -->
+  <link rel="stylesheet" href="style.css">
+  
+  <!-- Font Awesome for icons (Optional) -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css">
+  
+  <style>
+    /* Initially hide the map */
+    #map {
+      width: 100%;
+      height: 400px;
+      display: none;  /* Hidden by default */
+    }
+    /* Style for the button */
+    #viewMapButton {
+      padding: 10px 20px;
+      font-size: 16px;
+      background-color: #007bff;
+      color: white;
+      border: none;
+      cursor: pointer;
+      margin-top: 20px;
+    }
+    #viewMapButton:hover {
+      background-color: #0056b3;
+    }
+  </style>
+</head>
+<body>
+  <!-- Header section (Optional) -->
+  <header>
+    <h1>Satellite Tracker</h1>
+    <p>Explore satellites orbiting Earth and learn more about them by clicking on the markers.</p>
+  </header>
+
+  <!-- Button to toggle map visibility -->
+  <button id="viewMapButton">View Map</button>
+
+  <!-- Map container (hidden by default) -->
+  <div id="map"></div>
+
+  <!-- Footer section (Optional) -->
+  <footer>
+    <p>Data sourced from <a href="https://example.com" target="_blank">CelesTrak</a> and other public satellite APIs.</p>
+  </footer>
+
+  <!-- Leaflet JS -->
+  <script src="https://unpkg.com/leaflet@1.7.1/dist/leaflet.js"></script>
+
+  <!-- Custom JS -->
+  <script>
+    // Initialize the map (but don't display it yet)
+    // Initialize the map (set higher maxZoom to allow more zooming in)
+const map = L.map('map', {
+  center: [0, 0],
+  zoom: 2,
+  maxZoom: 18,  // Increased maxZoom to allow more zoom-in
+  minZoom: 2
+});
+
+    // Add OpenStreetMap tiles
+    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+      attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors',
+      noWrap: true
+    }).addTo(map);
+
+    // Show map when button is clicked
+    const viewMapButton = document.getElementById('viewMapButton');
+    const mapContainer = document.getElementById('map');
+
+    viewMapButton.addEventListener('click', function() {
+      // Show the map container and set the display to block
+      mapContainer.style.display = 'block';
+      // You can also trigger map resizing for Leaflet after it becomes visible
+      map.invalidateSize();
+      // Optionally hide the button after clicking
+      viewMapButton.style.display = 'none';
+    });
+  </script>
+
+</body>
+</html>
