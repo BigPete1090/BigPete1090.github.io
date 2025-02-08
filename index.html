@@ -19,6 +19,28 @@
   
   <!-- Font Awesome for icons (Optional) -->
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css">
+  
+  <style>
+    /* Initially hide the map */
+    #map {
+      width: 100%;
+      height: 400px;
+      display: none;  /* Hidden by default */
+    }
+    /* Style for the button */
+    #viewMapButton {
+      padding: 10px 20px;
+      font-size: 16px;
+      background-color: #007bff;
+      color: white;
+      border: none;
+      cursor: pointer;
+      margin-top: 20px;
+    }
+    #viewMapButton:hover {
+      background-color: #0056b3;
+    }
+  </style>
 </head>
 <body>
   <!-- Header section (Optional) -->
@@ -27,7 +49,10 @@
     <p>Explore satellites orbiting Earth and learn more about them by clicking on the markers.</p>
   </header>
 
-  <!-- Map container -->
+  <!-- Button to toggle map visibility -->
+  <button id="viewMapButton">View Map</button>
+
+  <!-- Map container (hidden by default) -->
   <div id="map"></div>
 
   <!-- Footer section (Optional) -->
@@ -39,7 +64,34 @@
   <script src="https://unpkg.com/leaflet@1.7.1/dist/leaflet.js"></script>
 
   <!-- Custom JS -->
-  <script src="script.js"></script>
+  <script>
+    // Initialize the map (but don't display it yet)
+    const map = L.map('map', {
+      center: [0, 0],
+      zoom: 2,
+      maxZoom: 5,
+      minZoom: 2
+    });
+
+    // Add OpenStreetMap tiles
+    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+      attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors',
+      noWrap: true
+    }).addTo(map);
+
+    // Show map when button is clicked
+    const viewMapButton = document.getElementById('viewMapButton');
+    const mapContainer = document.getElementById('map');
+
+    viewMapButton.addEventListener('click', function() {
+      // Show the map container and set the display to block
+      mapContainer.style.display = 'block';
+      // You can also trigger map resizing for Leaflet after it becomes visible
+      map.invalidateSize();
+      // Optionally hide the button after clicking
+      viewMapButton.style.display = 'none';
+    });
+  </script>
+
 </body>
 </html>
-
