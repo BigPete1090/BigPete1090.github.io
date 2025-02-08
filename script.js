@@ -2,12 +2,14 @@
 const map = L.map('map', {
   center: [0, 0],  // Center the map at coordinates (0, 0)
   zoom: 2,  // Set the initial zoom level
-  maxZoom: 3  // Set the maximum zoom out level (adjust this value as needed)
+  maxZoom: 5,  // Set the maximum zoom out level (adjust this value as needed)
+  minZoom: 2,  // Optional: Set a minimum zoom level
 });
 
-// Set the OpenStreetMap tiles for the map background
+// Set the OpenStreetMap tiles for the map background with noWrap: true
 L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-  attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
+  attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors',
+  noWrap: true  // Prevents the map from wrapping and showing multiple world images
 }).addTo(map);
 
 // Fetch satellite data from satellites.json
@@ -27,4 +29,3 @@ fetch('satellites.json')
     });
   })
   .catch(error => console.error('Error loading satellite data:', error));
-
