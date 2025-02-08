@@ -3,7 +3,6 @@ const map = L.map('map', {
   center: [0, 0],  // Center the map at coordinates (0, 0)
   zoom: 2,  // Set the initial zoom level
   maxZoom: 5,  // Set the maximum zoom out level (adjust this value as needed)
-  minZoom: 2,  // Optional: Set a minimum zoom level
 });
 
 // Set the OpenStreetMap tiles for the map background with noWrap: true
