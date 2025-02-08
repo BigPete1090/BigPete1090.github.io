@@ -1,14 +1,14 @@
-from sgp4.api import Satrec
-from sgp4.api import SatrecArray
-from astropy.time import Time
+import json
 import requests
 import pandas as pd
 import numpy as np
+from sgp4.api import Satrec
+from astropy.time import Time
 
-# URL of the CSV data
+# URL of the CSV data from CelesTrak
 url = "https://celestrak.org/NORAD/elements/gp.php?GROUP=active&FORMAT=csv"
 
-# Download the CSV file
+# Download and load CSV data
 response = requests.get(url)
 if response.status_code == 200:
     with open("satellite_data.csv", "wb") as file:
@@ -21,59 +21,53 @@ else:
 # Load CSV into pandas DataFrame
 df = pd.read_csv("satellite_data.csv")
 
-# Function to calculate position for a satellite
+# Function to calculate satellite position
 def calculate_position(row):
-    # Create a Satrec object using the TLE parameters
     sat = Satrec()
     sat.sgp4init(
-        72,  # Ephemeris type (72 = standard SGP4)
-        row["EPHEMERIS_TYPE"],  # Ephemeris type from dataset
-        row["NORAD_CAT_ID"],  # NORAD catalog ID
-        row["BSTAR"],  # Drag term
-        row["MEAN_MOTION_DOT"],  # First derivative of mean motion
-        row["MEAN_MOTION_DDOT"],  # Second derivative of mean motion
-        row["EPOCH"],  # Epoch time in Julian format
-        row["INCLINATION"],  # Inclination (degrees)
-        row["RA_OF_ASC_NODE"],  # Right Ascension of Ascending Node (degrees)
-        row["ECCENTRICITY"],  # Eccentricity (unitless)
-        row["ARG_OF_PERICENTER"],  # Argument of Perigee (degrees)
-        row["MEAN_ANOMALY"],  # Mean Anomaly (degrees)
-        row["MEAN_MOTION"],  # Mean Motion (revolutions per day)
+        72,  # Ephemeris type
+        row["EPHEMERIS_TYPE"],
+        row["NORAD_CAT_ID"],
+        row["BSTAR"],
+        row["MEAN_MOTION_DOT"],
+        row["MEAN_MOTION_DDOT"],
+        row["EPOCH"],
+        row["INCLINATION"],
+        row["RA_OF_ASC_NODE"],
+        row["ECCENTRICITY"],
+        row["ARG_OF_PERICENTER"],
+        row["MEAN_ANOMALY"],
+        row["MEAN_MOTION"]
     )
-    
+
     # Get current time in Julian format
     current_time = Time.now()
-    jd, fr = divmod(current_time.jd, 1)  # Separate Julian date and fraction
+    jd, fr = divmod(current_time.jd, 1)
 
-    # Propagate the satellite
-    e, r, v = sat.sgp4(jd, fr)  # Returns position (r) and velocity (v)
-
+    # Propagate the satellite position
+    e, r, v = sat.sgp4(jd, fr)
     if e != 0:
-        print(f"Error computing satellite position: {e}")
-        return None
+        return None  # Skip if propagation fails
 
-    # Convert position from km to more readable format
-    x, y, z = r  # Position vector in km
-    lat = np.degrees(np.arctan2(z, np.sqrt(x**2 + y**2)))  # Approximate latitude
-    lon = np.degrees(np.arctan2(y, x))  # Approximate longitude
-    altitude = np.linalg.norm(r) - 6371  # Subtract Earth's radius (6371 km)
+    x, y, z = r
+    lat = np.degrees(np.arctan2(z, np.sqrt(x**2 + y**2)))
+    lon = np.degrees(np.arctan2(y, x))
+    altitude = np.linalg.norm(r) - 6371  # Earth radius correction
 
     return {
         "name": row["OBJECT_NAME"],
-        "latitude": lat,
-        "longitude": lon,
-        "altitude": altitude
+        "lat": round(lat, 6),
+        "lon": round(lon, 6),
+        "launch_date": row.get("EPOCH", "Unknown"),  # Approximate launch time
+        "details_url": f"https://www.n2yo.com/satellite/?s={row['NORAD_CAT_ID']}"
     }
 
-# Process all satellites
-satellite_positions = []
-for _, row in df.iterrows():
-    pos = calculate_position(row)
-    if pos:
-        satellite_positions.append(pos)
+# Generate JSON structure
+satellite_list = [calculate_position(row) for _, row in df.iterrows() if calculate_position(row)]
+json_data = {"satellites": satellite_list[:10]}  # Limit to 10 satellites for readability
 
-# Output all satellite positions
-for position in satellite_positions[:10]:  # Show only the first 10 for brevity
-    print(f"Satellite: {position['name']}")
-    print(f"Latitude: {position['latitude']:.2f}, Longitude: {position['longitude']:.2f}, Altitude: {position['altitude']:.2f} km")
-    print("-" * 40)
+# Save to a JSON file
+with open("satellites.json", "w") as json_file:
+    json.dump(json_data, json_file, indent=2)
+
+print("Updated JSON saved: satellites.json")
