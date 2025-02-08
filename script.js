@@ -1,30 +1,58 @@
-// Initialize the map centered at (0, 0) with zoom level 2
-const map = L.map('map', {
-  center: [0, 0],  // Center the map at coordinates (0, 0)
-  zoom: 2,  // Set the initial zoom level
-  maxZoom: 5,  // Set the maximum zoom out level (adjust this value as needed)
+document.addEventListener("DOMContentLoaded", function () {
+    let mapContainer = document.getElementById("map");
+    mapContainer.style.display = "none";  // Hide the map initially
+
+    // Add event listener to the "View Map" button
+    document.getElementById("viewMapBtn").addEventListener("click", function () {
+        mapContainer.style.display = "block";  // Show the map container
+        initMap();  // Initialize the map when button is clicked
+    });
 });
 
-// Set the OpenStreetMap tiles for the map background with noWrap: true
-L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-  attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors',
-  noWrap: true  // Prevents the map from wrapping and showing multiple world images
-}).addTo(map);
-
-// Fetch satellite data from satellites.json
-fetch('satellites.json')
-  .then(response => response.json())
-  .then(data => {
-    data.satellites.forEach(satellite => {
-      // Create a marker for each satellite, using latitude and longitude
-      const marker = L.marker([satellite.lat, satellite.lon]).addTo(map);
-      
-      // Bind a popup with satellite information
-      marker.bindPopup(`
-        <h3>${satellite.name}</h3>
-        <p>Launch Date: ${satellite.launch_date}</p>
-        <p><a href="${satellite.details_url}" target="_blank">Learn More</a></p>
-      `);
+function initMap() {
+    // Initialize the map centered at (0, 0) with zoom level 2
+    const map = L.map('map', {
+        center: [0, 0],  
+        zoom: 2,  
+        maxZoom: 5,  
+        worldCopyJump: false  // Prevents world duplication when zooming out
     });
-  })
-  .catch(error => console.error('Error loading satellite data:', error));
+
+    // Set the OpenStreetMap tiles for the map background
+    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+        attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors',
+        noWrap: true
+    }).addTo(map);
+
+    // Fetch satellite data from satellites.json
+    fetch('satellites.json')
+        .then(response => {
+            if (!response.ok) {
+                throw new Error(`HTTP error! Status: ${response.status}`);
+            }
+            return response.json();
+        })
+        .then(data => {
+            if (!data.satellites || !Array.isArray(data.satellites)) {
+                throw new Error("Invalid satellite data format.");
+            }
+
+            // Add markers for each satellite
+            data.satellites.forEach(satellite => {
+                if (typeof satellite.lat === 'number' && typeof satellite.lon === 'number') {
+                    // Create a marker for each satellite
+                    const marker = L.marker([satellite.lat, satellite.lon]).addTo(map);
+
+                    // Bind a popup with satellite information
+                    marker.bindPopup(`
+                        <h3>${satellite.name}</h3>
+                        <p>Launch Date: ${satellite.launch_date}</p>
+                        <p><a href="${satellite.details_url}" target="_blank">Learn More</a></p>
+                    `);
+                } else {
+                    console.warn(`Invalid coordinates for satellite: ${satellite.name}`);
+                }
+            });
+        })
+        .catch(error => console.error('Error loading satellite data:', error));
+}
