@@ -1,65 +1,79 @@
 from sgp4.api import Satrec
+from sgp4.api import SatrecArray
 from astropy.time import Time
-from astropy.coordinates import CartesianRepresentation
-from astropy import units as u
 import requests
+import pandas as pd
+import numpy as np
 
 # URL of the CSV data
 url = "https://celestrak.org/NORAD/elements/gp.php?GROUP=active&FORMAT=csv"
 
-# Send a request to download the CSV file
+# Download the CSV file
 response = requests.get(url)
-
-# Save the CSV file locally
 if response.status_code == 200:
     with open("satellite_data.csv", "wb") as file:
         file.write(response.content)
     print("Download complete: satellite_data.csv")
 else:
     print("Failed to download file, status code:", response.status_code)
+    exit()
 
+# Load CSV into pandas DataFrame
+df = pd.read_csv("satellite_data.csv")
 
-# List of satellites with their TLE data
-satellite_data = file
+# Function to calculate position for a satellite
+def calculate_position(row):
+    # Create a Satrec object using the TLE parameters
+    sat = Satrec()
+    sat.sgp4init(
+        72,  # Ephemeris type (72 = standard SGP4)
+        row["EPHEMERIS_TYPE"],  # Ephemeris type from dataset
+        row["NORAD_CAT_ID"],  # NORAD catalog ID
+        row["BSTAR"],  # Drag term
+        row["MEAN_MOTION_DOT"],  # First derivative of mean motion
+        row["MEAN_MOTION_DDOT"],  # Second derivative of mean motion
+        row["EPOCH"],  # Epoch time in Julian format
+        row["INCLINATION"],  # Inclination (degrees)
+        row["RA_OF_ASC_NODE"],  # Right Ascension of Ascending Node (degrees)
+        row["ECCENTRICITY"],  # Eccentricity (unitless)
+        row["ARG_OF_PERICENTER"],  # Argument of Perigee (degrees)
+        row["MEAN_ANOMALY"],  # Mean Anomaly (degrees)
+        row["MEAN_MOTION"],  # Mean Motion (revolutions per day)
+    )
+    
+    # Get current time in Julian format
+    current_time = Time.now()
+    jd, fr = divmod(current_time.jd, 1)  # Separate Julian date and fraction
 
-# Function to calculate position for each satellite
-def calculate_position(satellite):
-    # Create a Satrec object from TLE data
-    sat = Satrec.twoline2rv(satellite["line1"], satellite["line2"])
-    
-    # Get the current time (or any desired time)
-    current_time = Time.now()  # You can set any specific time here
-    
-    # Convert the time to Julian date
-    jd = current_time.jd
-    
-    # Propagate the satellite's position and velocity at the given time
-    e, r, v = sat.propagate(current_time.jd1, current_time.jd2)
-    
-    # Convert position to Cartesian representation
-    position = CartesianRepresentation(r)
-    
-    # Convert to more user-friendly coordinates like latitude, longitude, altitude
-    lat = position.lat
-    lon = position.lon
-    altitude = position.distance
-    
-    # Print or return the satellite's position
+    # Propagate the satellite
+    e, r, v = sat.sgp4(jd, fr)  # Returns position (r) and velocity (v)
+
+    if e != 0:
+        print(f"Error computing satellite position: {e}")
+        return None
+
+    # Convert position from km to more readable format
+    x, y, z = r  # Position vector in km
+    lat = np.degrees(np.arctan2(z, np.sqrt(x**2 + y**2)))  # Approximate latitude
+    lon = np.degrees(np.arctan2(y, x))  # Approximate longitude
+    altitude = np.linalg.norm(r) - 6371  # Subtract Earth's radius (6371 km)
+
     return {
-        "name": satellite["name"],
+        "name": row["OBJECT_NAME"],
         "latitude": lat,
         "longitude": lon,
         "altitude": altitude
     }
 
-# Process all satellites in the database
+# Process all satellites
 satellite_positions = []
-for satellite in satellite_data:
-    position = calculate_position(satellite)
-    satellite_positions.append(position)
+for _, row in df.iterrows():
+    pos = calculate_position(row)
+    if pos:
+        satellite_positions.append(pos)
 
 # Output all satellite positions
-for position in satellite_positions:
+for position in satellite_positions[:10]:  # Show only the first 10 for brevity
     print(f"Satellite: {position['name']}")
-    print(f"Latitude: {position['latitude']}, Longitude: {position['longitude']}, Altitude: {position['altitude']}")
+    print(f"Latitude: {position['latitude']:.2f}, Longitude: {position['longitude']:.2f}, Altitude: {position['altitude']:.2f} km")
     print("-" * 40)
