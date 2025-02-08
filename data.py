@@ -2,21 +2,25 @@ from sgp4.api import Satrec
 from astropy.time import Time
 from astropy.coordinates import CartesianRepresentation
 from astropy import units as u
+import requests
+
+# URL of the CSV data
+url = "https://celestrak.org/NORAD/elements/gp.php?GROUP=active&FORMAT=csv"
+
+# Send a request to download the CSV file
+response = requests.get(url)
+
+# Save the CSV file locally
+if response.status_code == 200:
+    with open("satellite_data.csv", "wb") as file:
+        file.write(response.content)
+    print("Download complete: satellite_data.csv")
+else:
+    print("Failed to download file, status code:", response.status_code)
+
 
 # List of satellites with their TLE data
-satellite_data = [
-    {
-        "name": "ISS (ZARYA)",
-        "line1": "1 25544U 98067A   22314.22666767  .00002799  00000-0  62276-4 0  9993",
-        "line2": "2 25544  51.6414  17.2241 0004257  68.3855 291.6687 15.50106675465559"
-    },
-    {
-        "name": "Hubble Space Telescope",
-        "line1": "1 20580U 90037B   22314.24960123  .00003884  00000-0  81076-4 0  9995",
-        "line2": "2 20580  28.4722  79.3312 0009789  53.6154  35.6976 15.42456725838984"
-    }
-    # Add more satellites here...
-]
+satellite_data = file
 
 # Function to calculate position for each satellite
 def calculate_position(satellite):
