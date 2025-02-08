@@ -84,9 +84,16 @@
         }
 
         function satelliteProjection() {
-            let year = document.getElementById("satelliteProjectionInput").value;
-            let satellitesLaunched = 150 + (15.5 * parseFloat(year - 2020));
-            document.getElementById("satelliteProjectionResult").textContent = "Projected Satellites: " + Math.round(satellitesLaunched) + " launches";
+            let year = parseFloat(document.getElementById("satelliteProjectionInput").value);
+            let yearsSince2020 = year - 2020;
+            let satellitesLaunched = 150 + (15.5 * yearsSince2020);
+            
+            // Add validation to prevent negative numbers
+            if (satellitesLaunched < 150) {
+                document.getElementById("satelliteProjectionResult").textContent = "Please enter a year 2020 or later";
+            } else {
+                document.getElementById("satelliteProjectionResult").textContent = "Projected Satellites: " + Math.round(satellitesLaunched) + " launches";
+            }
         }
     </script>
 </body>
