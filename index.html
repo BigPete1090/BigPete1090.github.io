@@ -83,12 +83,11 @@
             contentElement.scrollIntoView({ behavior: 'smooth'});
         }
 
-        function homeProjection() {
-            let year = document.getElementById("homeProjectionInput").value
-            let theAcresAnswer=9.98974240e+01+ (-4.53627157e-02*parseFloat(year))
-            let theFarmsAnswer = 1.36968138e+03 +(-6.55831003e-01*parseFloat(year))
-            document.getElementById("homeProjectionResult1").textContent = "Acres Remaining: " + Math.round(theAcresAnswer*100)/100 + " million"
-            document.getElementById("homeProjectionResult2").textContent = "Farms Remaining: " + Math.round(theFarmsAnswer * 1000)/1000 + " thousand"
+        function satelliteProjection() {
+            let year = document.getElementById("satelliteProjectionInput").value
+            // Using example coefficients - adjust these based on actual satellite data
+            let satellitesLaunched = 150 + (15.5 * parseFloat(year - 2020))
+            document.getElementById("satelliteProjectionResult").textContent = "Projected Satellites: " + Math.round(satellitesLaunched) + " launches"
         }
     </script>
 </body>
