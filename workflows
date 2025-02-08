@@ -1,0 +1,33 @@
+name: Update Satellites Data
+
+on:
+  schedule:
+    - cron: '0 */3 * * *'  # Run every 3 hours, adjust as needed
+  workflow_dispatch:  # Allows you to manually trigger the action
+
+jobs:
+  update-satellites:
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Checkout repository
+      uses: actions/checkout@v2
+
+    - name: Set up Python
+      uses: actions/setup-python@v2
+
+    - name: Install dependencies
+      run: |
+        pip install requests
+
+    - name: Run the Python script
+      run: |
+        python update_satellites.py
+
+    - name: Commit and push updated satellites.json
+      run: |
+        git config --global user.name "your-username"
+        git config --global user.email "your-email@example.com"
+        git add satellites.json
+        git commit -m "Update satellites data"
+        git push
