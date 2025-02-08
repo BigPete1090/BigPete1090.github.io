@@ -45,7 +45,7 @@
             <div>
                 <label>Enter a year to see the amount of Satellites that were launched into orbit: </label>
                 <input type="text" id="satelliteProjectionInput">
-                <button onclick="satelliteProjectionInput()" class="home-down">Submit</button>
+                <button onclick="satelliteProjection()" class="home-down">Submit</button>
             </div>
             <p id="satelliteProjectionResult"></p>
             <p id="satelliteProjectionResult2"></p>
@@ -84,10 +84,9 @@
         }
 
         function satelliteProjection() {
-            let year = document.getElementById("satelliteProjectionInput").value
-            // Using example coefficients - adjust these based on actual satellite data
-            let satellitesLaunched = 150 + (15.5 * parseFloat(year - 2020))
-            document.getElementById("satelliteProjectionResult").textContent = "Projected Satellites: " + Math.round(satellitesLaunched) + " launches"
+            let year = document.getElementById("satelliteProjectionInput").value;
+            let satellitesLaunched = 150 + (15.5 * parseFloat(year - 2020));
+            document.getElementById("satelliteProjectionResult").textContent = "Projected Satellites: " + Math.round(satellitesLaunched) + " launches";
         }
     </script>
 </body>
