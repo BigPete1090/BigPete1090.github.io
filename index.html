@@ -66,12 +66,13 @@
   <!-- Custom JS -->
   <script>
     // Initialize the map (but don't display it yet)
-    const map = L.map('map', {
-      center: [0, 0],
-      zoom: 2,
-      maxZoom: 5,
-      minZoom: 2
-    });
+    // Initialize the map (set higher maxZoom to allow more zooming in)
+const map = L.map('map', {
+  center: [0, 0],
+  zoom: 2,
+  maxZoom: 18,  // Increased maxZoom to allow more zoom-in
+  minZoom: 2
+});
 
     // Add OpenStreetMap tiles
     L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
