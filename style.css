@@ -1,1 +1,11 @@
+/* Set the size of the map container */
+#map {
+  height: 100vh;
+  width: 100%;
+}
+
+/* Simple style for info popups */
+.popup {
+  font-family: Arial, sans-serif;
+}
 
