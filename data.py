@@ -7,21 +7,18 @@ import json
 from datetime import datetime, timedelta
 import time
 
-# Geographic boundaries (North Carolina region)
 LAT_MIN = 34
 LAT_MAX = 37
-LON_MIN = -86  # Converting West to negative degrees
-LON_MAX = -74  # Converting West to negative degrees
+LON_MIN = -86  
+LON_MAX = -74  
 
-# Time window for prediction (in minutes)
-TIME_WINDOW = 180  # Check positions over next 3 hours
-TIME_STEPS = 36    # Check every 5 minutes
+TIME_WINDOW = 180  
+TIME_STEPS = 36    
 
-# Custom JSON Encoder to handle boolean serialization
 class CustomJSONEncoder(json.JSONEncoder):
     def default(self, obj):
         if isinstance(obj, bool):
-            return str(obj)  # Convert booleans to strings
+            return str(obj)  
         return super().default(obj)
 
 def normalize_longitude(lon):
@@ -77,7 +74,6 @@ def initialize_satellite(row):
         epoch_time = pd.to_datetime(row["EPOCH"])
         jd = Time(epoch_time).jd
         
-        # Extract and scale orbital elements
         norad_id = safe_int(row["NORAD_CAT_ID"])
         bstar = safe_float(row["BSTAR"])
         ndot = safe_float(row["MEAN_MOTION_DOT"]) / (1440.0)
@@ -89,7 +85,6 @@ def initialize_satellite(row):
         no_kozai = safe_float(row["MEAN_MOTION"]) / (1440.0)
         nodeo = safe_float(row["RA_OF_ASC_NODE"])
 
-        # Initialize satellite
         sat.sgp4init(
             WGS84,
             'a',
@@ -118,15 +113,12 @@ def predict_satellite_path(row):
         if not sat:
             return None
 
-        # Get current time
         current_time = Time.now()
         
-        # Calculate current position
         current_pos = calculate_position(sat, current_time.jd, 0.0)
         if not current_pos:
             return None
 
-        # Check multiple positions over the time window
         time_step = TIME_WINDOW / TIME_STEPS
         future_positions = []
         
@@ -143,7 +135,6 @@ def predict_satellite_path(row):
                     "minutes_from_now": round(minutes_from_now, 1)
                 })
 
-        # Check if any position is in our region of interest
         positions_in_region = [pos for pos in future_positions if is_in_region(pos["lat"], pos["lon"])]
         
         if positions_in_region or is_in_region(current_pos["lat"], current_pos["lon"]):
@@ -155,7 +146,7 @@ def predict_satellite_path(row):
                     "lon": current_pos["lon"],
                     "altitude": current_pos["altitude"],
                     "timestamp": current_time.iso,
-                    "in_region": str(is_in_region(current_pos["lat"], current_pos["lon"]))  # Convert boolean to string
+                    "in_region": str(is_in_region(current_pos["lat"], current_pos["lon"]))  
                 },
                 "future_passes": positions_in_region,
                 "details_url": f"https://www.n2yo.com/satellite/?s={norad_id}"
@@ -167,9 +158,7 @@ def predict_satellite_path(row):
         print(f"Error processing {row['OBJECT_NAME']}: {str(e)}")
         return None
 
-# Main execution
 if __name__ == "__main__":
-    # Download new data
     print(f"Starting download of satellite data...")
     response = requests.get("https://celestrak.org/NORAD/elements/gp.php?GROUP=active&FORMAT=csv")
     
@@ -181,12 +170,10 @@ if __name__ == "__main__":
         file.write(response.content)
     print("Download complete: satellite_data.csv")
     
-    # Load CSV into DataFrame
     print("Loading CSV data into DataFrame...")
     df = pd.read_csv("satellite_data.csv")
     print(f"Loaded {len(df)} rows from the CSV file.")
     
-    # Process satellites
     print(f"\nCalculating satellite positions and predicting paths over {TIME_WINDOW} minutes...")
     satellite_list = []
     total_satellites = len(df)
@@ -198,13 +185,11 @@ if __name__ == "__main__":
         if sat_data:
             satellite_list.append(sat_data)
         
-        # Show progress every 5%
         if (idx + 1) % max(1, total_satellites // 20) == 0:
             progress = (idx + 1) / total_satellites * 100
             print(f"Progress: {progress:.1f}% ({idx + 1}/{total_satellites})")
             print(f"Satellites found that pass through region: {len(satellite_list)}")
     
-    # Save results
     if satellite_list:
         final_data = {
             "satellites": satellite_list,
@@ -226,7 +211,6 @@ if __name__ == "__main__":
         print(f"Satellites passing through region: {len(satellite_list)}")
         print(f"Processing time: {final_data['processing_time']} seconds")
         
-        # Save to JSON file using custom encoder
         print("\nSaving satellite data to satellites.json...")
         with open("satellites.json", "w") as json_file:
             json.dump(final_data, json_file, indent=2, cls=CustomJSONEncoder)
