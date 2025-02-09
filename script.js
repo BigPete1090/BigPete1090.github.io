@@ -22,7 +22,6 @@ function initMap() {
 
             data.satellites.forEach(satellite => {
                 if (satellite.current_position && satellite.future_passes) {
-                    // Create marker at current position
                     let marker = L.marker([
                         satellite.current_position.lat,
                         satellite.current_position.lon
@@ -35,25 +34,19 @@ function initMap() {
                         <p><a href="${satellite.details_url}" target="_blank">Learn More</a></p>
                     `);
 
-                    // Create the complete path coordinates
                     let pathCoordinates = [
-                        // Start with current position
                         [satellite.current_position.lat, satellite.current_position.lon]
                     ];
 
-                    // Add all future passes
                     satellite.future_passes.forEach(pass => {
                         pathCoordinates.push([pass.lat, pass.lon]);
                     });
 
-                    // Extend the path beyond the last known point
                     let lastPoints = pathCoordinates.slice(-2);
                     if (lastPoints.length === 2) {
-                        // Calculate direction vector
                         let dx = lastPoints[1][1] - lastPoints[0][1];
                         let dy = lastPoints[1][0] - lastPoints[0][0];
                         
-                        // Add additional points to extend the path
                         for (let i = 1; i <= 5; i++) {
                             pathCoordinates.push([
                                 lastPoints[1][0] + dy * i,
@@ -62,15 +55,13 @@ function initMap() {
                         }
                     }
 
-                    // Draw the path
                     let pathLine = L.polyline(pathCoordinates, {
                         color: 'blue',
                         weight: 2,
                         opacity: 0.8,
-                        dashArray: '5, 10' // Make the extended portion dashed
+                        dashArray: '5, 10' 
                     }).addTo(map);
 
-                    // Animate the satellite
                     animateSatellite(marker, pathLine, pathCoordinates);
                 }
             });
