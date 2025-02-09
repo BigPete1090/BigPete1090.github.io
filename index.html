@@ -8,8 +8,30 @@
 </html>
 
 <body>
-    <!-- Previous HTML remains the same until the satellite projection section -->
-    
+    <div class="navbar" id="navbar">
+        <a href="index.html"><img src="orbitlogowhite.png"></a>
+    </div>
+    <div class="hero-container">
+        <div class="hero-logo-box">
+            <a href="index.html"><img src="orbitlogowhite.png"></a>
+            <div class="hero-buttons">
+                <button onclick="scrollToContent()" class="home">LEARN MORE</button>
+                <a href="map.html"><button class="home">VISIT TRACKER</button></a>
+            </div>
+        </div>
+    </div>
+    <div class="home-content" id="content-1">
+        <div class="big-padding">
+            <h2>What is Orbit?</h2>
+            <p>
+                With the advancement of space travel and satellite technology, knowledge about the current satellites orbiting above has become imperative. Our app introduces users to real-time satellite data over North Carolina, 
+                Satellites have immense relevance for  life, be it for communication, weather forecasts, scientific research, or even national security. Our application will help users track the position of active satellites, understand their function, 
+                and show how those satellites contribute to an industry or service. To researchers, educators, and enthusiasts, our app provides an interactive platform to explore an ever-evolving landscape of satellite technology,
+                focusing on those that have a direct consequence on the region of North Carolina. As the world becomes increasingly dependent on satellite data-from GPS navigation to climate monitoring-knowing what's overhead is more important than ever. 
+                Our application bridges the gap between the public and the complex world of space technology, providing an intuitive and accessible way to engage with the technology that supports modern life.
+            </p>
+        </div>
+    </div>
     <div class="home-content">
         <div id="home-plot-big">
             <h2>Visualizing the Problem</h2>
@@ -28,39 +50,45 @@
             <p id="satelliteProjectionResult2"></p>
         </div>
     </div>
-
-    <!-- Rest of HTML remains the same -->
+    <div class="home-content">
+        <div class="big-padding">
+            <h2>Our Tool</h2>
+            <p>
+                Orbit's key product comes from the Celestrack database which tracks Satellites. Out of the 10,000+ active satellites orbiting Earth currently, we can see how many of those satellites come over North Carolina, 
+                updating multiple times daily. This application is especially useful to space organizations launching satellites themselves. At the click of a mouse, a myriad of statistics and projections are available for any location in North
+                Carolina for organizations to see. Most importantly, these companies can make sure their own satellite doesn't collide with another one based on its path. Satellite collisions, which is becoming more frequent of a problem, 
+                leads to so much space debris in Earth's Orbit. With this web application, we are able to minimize this issue and potentially end satellite collisions all in all.
+            </p>
+        </div>
+        <img src="tool.png" id="tool">
+    </div>
 
     <script>
-        // Previous functions remain the same
+        window.onscroll = function() {
+            scrollFunction();
+        };
+    
+        function scrollFunction() {
+            var navbar = document.getElementById("navbar");
+            if (document.body.scrollTop > 300 || document.documentElement.scrollTop > 300) {
+                navbar.style.display = "flex";
+            } else {
+                navbar.style.display = "none";
+            }
+        }
+
+        function scrollToContent() {
+            var contentElement = document.getElementById("content-1");
+            contentElement.scrollIntoView({ behavior: 'smooth'});
+        }
 
         function satelliteProjection() {
             let year = parseInt(document.getElementById("satelliteProjectionInput").value);
-            let satellitesLaunched;
-            
-            // Using real data
-            if (year < 1957) {
-                document.getElementById("satelliteProjectionResult").textContent = 
-                    "Please enter a year from 1957 onwards (first satellite launch)";
-                return;
-            }
-            
-            if (year >= 2020) {
-                // Modern era (2020+) - exponential growth
-                satellitesLaunched = Math.round(466 * Math.pow(1.455, (year - 2020)));
-            } else if (year >= 2010) {
-                // 2010-2019 - rapid growth period
-                satellitesLaunched = Math.round(78 * Math.pow(1.25, (year - 2010)));
-            } else if (year >= 1990) {
-                // 1990-2009 - steady growth
-                satellitesLaunched = Math.round(36 + (3.5 * (year - 1990)));
-            } else if (year >= 1957) {
-                // Early space age (1957-1989)
-                satellitesLaunched = Math.round(1 + (1.8 * (year - 1957)));
-            }
-
+            // Linear regression model based on real satellite launch data (2018-2023)
+            let estimatedSatellites = (-10472 + (5.89 * year));
             document.getElementById("satelliteProjectionResult").textContent = 
-                `Estimated Satellites Launched in ${year}: ${satellitesLaunched}`;
+                `Estimated Satellites Launched in ${year}: ${Math.round(estimatedSatellites)}`;
         }
     </script>
 </body>
+
