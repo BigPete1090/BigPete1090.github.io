@@ -227,7 +227,7 @@ button {
 
 button:hover {
     background-color: var(--color-2);
-    color: black;
+    color: var(--color-1);
 }
 
 button.home-down:hover {
