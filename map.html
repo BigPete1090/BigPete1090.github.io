@@ -120,8 +120,8 @@
                     <p><strong>Latitude:</strong> ${currentPos.lat}</p>
                     <p><strong>Longitude:</strong> ${currentPos.lon}</p>
                     <p><a href="${satellite.details_url}" target="_blank">Learn More</a></p>
+                    <p><strong>Time until reaching NC:</strong> ${getTimeUntilNC(satellite)}</p>
                 `);
-
             let pathSegments = [];
             let lastPoint = [currentPos.lat, currentPos.lon];
 
