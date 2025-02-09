@@ -24,7 +24,7 @@
 <body>
     <header>
         <h1>Satellite Tracker</h1>
-        <p>Track satellites and their paths to North Carolina over the next 3 hours.</p>
+        <p>Track satellites and their paths to North Carolina</p>
     </header>
 
     <div class="controls" id="controls">
@@ -39,7 +39,7 @@
         let currentPaths = []; // To keep track of currently shown paths
 
         const NC_Lat = 35.5; // Latitude of North Carolina
-        const NC_Lon = -79.0; // Longitude of North Carolina
+        const NC_Lon = -78.0; // Longitude of North Carolina
 
         // Initialize the map immediately
         document.addEventListener("DOMContentLoaded", function() {
@@ -94,7 +94,7 @@
                         const minutesFromNC = calculateMinutesFromNC(currentPos.lat, currentPos.lon);
 
                         // Show paths if the satellite is to the west or north of North Carolina
-                        if (currentPos.lat >= NC_Lat || currentPos.lon < NC_Lon) {
+                        if (currentPos.lon < NC_Lon) {
                             addSatellite(map, satellite, minutesFromNC);
                         } else {
                             addSatelliteWithoutPath(map, satellite, minutesFromNC);
