@@ -24,7 +24,7 @@
 <body>
     <header>
         <h1>Satellite Tracker</h1>
-        <p>Track satellites and their paths to North Carolina</p>
+        <p>Track satellites and the straight-line predicted path to North Carolina</p>
     </header>
 
     <div class="controls" id="controls">
@@ -36,6 +36,7 @@
     <script>
         let satellitePaths = {};
         let map;
+        const NC_LON = -79.0; // North Carolina longitude reference
 
         // Initialize the map immediately
         document.addEventListener("DOMContentLoaded", function() {
@@ -43,11 +44,18 @@
         });
 
         function initMap() {
+            const bounds = [
+                [-150, -185],
+                [150, 185]
+            ];
             map = L.map('map', {
                 center: [35.5, -79.0],
                 zoom: 3,
                 maxZoom: 10,
-                minZoom: 2
+                minZoom: 2,
+                maxBounds: L.latLngBounds(bounds),
+                maxBoundsViscosity: 0.8,
+                crs: L.CRS.EPSG3857
             });
 
             L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
@@ -59,21 +67,54 @@
         }
 
         function createWrappedPath(start, end) {
-            const diffLon = end[1] - start[1];
-            if (Math.abs(diffLon) > 180) {
-                if (diffLon > 0) {
-                    return [
-                        [[start[0], start[1]], [end[0], -180]],
-                        [[end[0], 180], [end[0], end[1]]]
-                    ];
-                } else {
-                    return [
-                        [[start[0], start[1]], [start[0], 180]],
-                        [[start[0], -180], [end[0], end[1]]]
-                    ];
-                }
+            let segments = [];
+            const startLon = start[1];
+            const endLon = end[1];
+            let diffLon = endLon - startLon;
+            const latDiff = end[0] - start[0];
+            
+            // Adjust the path for satellites east of NC to go around the world westward
+            if (startLon > NC_LON && diffLon > 0) {
+                // Go westward around the world
+                diffLon = -(360 - diffLon);
             }
-            return [[[start[0], start[1]], [end[0], end[1]]]];
+            
+            // If crossing the international date line
+            if (Math.abs(diffLon) > 180) {
+                // Calculate how far along the path we need to split
+                const ratio = (180 - Math.abs(startLon)) / Math.abs(diffLon);
+                const splitLat = start[0] + (latDiff * ratio);
+                
+                if (diffLon > 0) {
+                    // Going eastward across dateline
+                    segments.push([
+                        [start[0], startLon],
+                        [splitLat, -180]
+                    ]);
+                    segments.push([
+                        [splitLat, 180],
+                        [end[0], endLon]
+                    ]);
+                } else {
+                    // Going westward across dateline
+                    segments.push([
+                        [start[0], startLon],
+                        [splitLat, 180]
+                    ]);
+                    segments.push([
+                        [splitLat, -180],
+                        [end[0], endLon]
+                    ]);
+                }
+            } else {
+                // No date line crossing, single segment
+                segments.push([
+                    [start[0], startLon],
+                    [end[0], endLon]
+                ]);
+            }
+            
+            return segments;
         }
 
         async function loadSatelliteData(map) {
@@ -93,7 +134,7 @@
 
         function addSatellite(map, satellite) {
             const currentPos = satellite.current_position;
-            const futurePos = satellite.future_passes
+            const futurePos = satellite.future_passes;
             
             // Add marker for current position
             const marker = L.marker([currentPos.lat, currentPos.lon])
@@ -102,15 +143,16 @@
                     <h3>${satellite.name}</h3>
                     <p><strong>Time:</strong> ${currentPos.timestamp}</p>
                     <p><strong>Altitude:</strong> ${Math.round(currentPos.altitude)} km</p>
-                    <p><strong>Latitude:</strong> ${currentPos.lat}</p>
-                    <p><strong>Longitude:</strong> ${currentPos.lon}</p>
-                    <p><strong>Minutes from NC:</strong> ${futurePos.minutes_from_now}</p>
+                    <p><strong>Latitude:</strong> ${currentPos.lat.toFixed(4)}°</p>
+                    <p><strong>Longitude:</strong> ${currentPos.lon.toFixed(4)}°</p>
+                    <p><strong>Minutes from NC:</strong> ${futurePos[0]?.minutes_from_now || 'N/A'}</p>
                     <p><a href="${satellite.details_url}" target="_blank">Learn More</a></p>
                 `);
 
             let pathSegments = [];
             let lastPoint = [currentPos.lat, currentPos.lon];
 
+            // Create path segments for each point in future_passes
             satellite.future_passes.forEach(pass => {
                 const nextPoint = [pass.lat, pass.lon];
                 const segments = createWrappedPath(lastPoint, nextPoint);
@@ -118,28 +160,30 @@
                 lastPoint = nextPoint;
             });
 
-            // Store the paths for later display
+            // Store the paths with smoother styling
             satellitePaths[satellite.name] = pathSegments.map(segment => 
                 L.polyline(segment, {
-                    color: 'blue',
-                    weight: 2,
-                    opacity: 0.8
+                    color: '#2196F3',
+                    weight: 2.5,
+                    opacity: 0.7,
+                    smoothFactor: 1.5,
+                    lineJoin: 'round'
                 })
             );
 
-            // Add event listener to the marker to show path when clicked
+            // Add event listener to the marker
             marker.on('click', function() {
                 showPath(satellite.name);
             });
         }
 
         function showPath(satelliteName) {
-            // Hide all paths first
+            // Remove all currently shown paths
             Object.keys(satellitePaths).forEach(name => {
                 satellitePaths[name].forEach(path => path.remove());
             });
 
-            // Show the path for the clicked satellite
+            // Show the selected satellite's path
             satellitePaths[satelliteName].forEach(path => {
                 path.addTo(map);
             });
