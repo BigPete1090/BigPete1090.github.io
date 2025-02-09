@@ -1,49 +1,163 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
+<head>
     <title>Satellite Tracking Map</title>
     <link rel="stylesheet" href="style.css">
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Lato:ital,wght@0,100;0,300;0,400;0,700;0,900;1,100;1,300;1,400;1,700;1,900&family=Playfair+Display:ital,wght@0,400..900;1,400..900&display=swap" rel="stylesheet">
-</html>
-
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.7.1/dist/leaflet.css" />
+    <style>
+        #map {
+            width: 100%;
+            height: 400px;
+            display: none;
+        }
+        #viewMapButton {
+            padding: 10px 20px;
+            font-size: 16px;
+            background-color: #007bff;
+            color: white;
+            border: none;
+            cursor: pointer;
+            margin-top: 20px;
+        }
+        #viewMapButton:hover {
+            background-color: #0056b3;
+        }
+        .controls {
+            margin: 10px 0;
+            padding: 10px;
+            background-color: #f8f9fa;
+            border-radius: 5px;
+            display: none;  /* Hidden by default */
+        }
+    </style>
+</head>
 <body>
-    <div class="navbar" id="navbar">
-        <a href="index.html"><img src="orbitlogodark.png"></a>
-    </div>
-    <div class="navbar-place">
-    </div>
-    <div>
+    <header>
         <h1>Satellite Tracker</h1>
-    </div>
-    <div class="map-div">
-        <div id="stats">
-            <h1 id="coords">Click anywhere in North Carolina or enter coordinates above to view farming potential.</h1>
-        </div>
-        <div id="map"></div>
-    </div>
+        <p>Track satellites and their paths to North Carolina</p>
+    </header>
 
+    <button id="viewMapButton">View Map</button>
+    <div class="controls" id="controls">
+        <!-- Controls can be used for additional features in the future -->
+    </div>
+    <div id="map"></div>
+
+    <script src="https://unpkg.com/leaflet@1.7.1/dist/leaflet.js"></script>
     <script>
-        let navbar = document.getElementById("navbar");
-        navbar.style.display = "flex";
+        let satellitePaths = {};
+        let map;
 
-        let viewportWidth = window.innerWidth || document.documentElement.clientWidth;
-        let mapWidth = (70 * viewportWidth) / 100
-        let viewportHeight = window.innerHeight || document.documentElement.clientHeight;
-        let mapHeight = (77 * viewportHeight) / 100
+        document.getElementById("viewMapButton").addEventListener("click", function() {
+            document.getElementById('map').style.display = "block";
+            document.getElementById('controls').style.display = "block";
+            initMap();
+            this.style.display = "none";
+        });
 
-        let map = document.getElementById("map")
-        map.setAttribute("width", mapWidth)
-        map.setAttribute("height", mapHeight)
-    
+        function initMap() {
+            map = L.map('map', {
+                center: [35.5, -79.0],
+                zoom: 3,
+                maxZoom: 10,
+                minZoom: 2
+            });
 
+            L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+                attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors',
+                noWrap: true
+            }).addTo(map);
+
+            loadSatelliteData(map);
+        }
+
+        function createWrappedPath(start, end) {
+            const diffLon = end[1] - start[1];
+            if (Math.abs(diffLon) > 180) {
+                if (diffLon > 0) {
+                    return [
+                        [[start[0], start[1]], [end[0], -180]],
+                        [[end[0], 180], [end[0], end[1]]]
+                    ];
+                } else {
+                    return [
+                        [[start[0], start[1]], [start[0], 180]],
+                        [[start[0], -180], [end[0], end[1]]]
+                    ];
+                }
+            }
+            return [[[start[0], start[1]], [end[0], end[1]]]];
+        }
+
+        async function loadSatelliteData(map) {
+            try {
+                const response = await fetch('satellites.json');
+                const data = await response.json();
+
+                if (data.satellites && Array.isArray(data.satellites)) {
+                    data.satellites.forEach(satellite => {
+                        addSatellite(map, satellite);
+                    });
+                }
+            } catch (error) {
+                console.error('Error loading satellite data:', error);
+            }
+        }
+
+        function addSatellite(map, satellite) {
+            const currentPos = satellite.current_position;
+            
+            // Add marker for current position
+            const marker = L.marker([currentPos.lat, currentPos.lon])
+                .addTo(map)
+                .bindPopup(`
+                    <h3>${satellite.name}</h3>
+                    <p><strong>Time:</strong> ${currentPos.timestamp}</p>
+                    <p><strong>Altitude:</strong> ${Math.round(currentPos.altitude)} km</p>
+                    <p><strong>Latitude:</strong> ${currentPos.lat}</p>
+                    <p><strong>Longitude:</strong> ${currentPos.lon}</p>
+                    <p><a href="${satellite.details_url}" target="_blank">Learn More</a></p>
+                `);
+
+            let pathSegments = [];
+            let lastPoint = [currentPos.lat, currentPos.lon];
+
+            satellite.future_passes.forEach(pass => {
+                const nextPoint = [pass.lat, pass.lon];
+                const segments = createWrappedPath(lastPoint, nextPoint);
+                pathSegments.push(...segments);
+                lastPoint = nextPoint;
+            });
+
+            // Store the paths for later display
+            satellitePaths[satellite.name] = pathSegments.map(segment => 
+                L.polyline(segment, {
+                    color: 'blue',
+                    weight: 2,
+                    opacity: 0.8
+                })
+            );
+
+            // Add event listener to the marker to show path when clicked
+            marker.on('click', function() {
+                showPath(satellite.name);
+            });
+        }
+
+        function showPath(satelliteName) {
+            // Hide all paths first
+            Object.keys(satellitePaths).forEach(name => {
+                satellitePaths[name].forEach(path => path.remove());
+            });
+
+            // Show the path for the clicked satellite
+            satellitePaths[satelliteName].forEach(path => {
+                path.addTo(map);
+            });
+        }
     </script>
-
-    <script
-    src="https://maps.googleapis.com/maps/api/js?key=AIzaSyCmSzImOzSIVqGLKXi1ppJJWBlc8iYXJm4&callback=initMap&v=weekly"
-    defer
-    ></script>
-    <script src="ML.js"></script>
-    <script src="map.js"></script>
-
 </body>
+</html>
