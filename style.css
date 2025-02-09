@@ -157,8 +157,10 @@ h1 {
     margin-left: 20px;
 }
 
+
 h1.home-header {
     font-size: 3vw;
+
 }
 
 div#stats > h1 {
@@ -172,6 +174,8 @@ h1#coords {
 
 p {
     font-size: 1.2em;
+    font-family: "Futura", monospace;
+    margin-left: 20px;
 }
 
 p.degN {
@@ -218,7 +222,7 @@ button {
     margin: 0 10px;
     cursor: pointer;
     background-color: var(--color-1);
-    color: white;
+    color: black;
     border: none;
     border-radius: 5px;
     transition: background-color 0.3s ;
@@ -227,11 +231,7 @@ button {
 
 button:hover {
     background-color: var(--color-2);
-    color: var(--color-1);
-}
-
-button.home-down:hover {
-    background-color: var(--color-1);
+    color:var(--color-1);
 }
 
 input#userInput {
@@ -258,4 +258,3 @@ input#latlong {
 #home-plot-big {
     padding: 0;
 }
-
