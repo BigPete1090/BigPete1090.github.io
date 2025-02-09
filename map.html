@@ -1,46 +1,60 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Satellite Tracking Map</title>
+    <link rel="stylesheet" href="style.css">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Lato:ital,wght@0,100;0,300;0,400;0,700;0,900;1,100;1,300;1,400;1,700;1,900&family=Playfair+Display:ital,wght@0,400..900;1,400..900&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.7.1/dist/leaflet.css" />
-    <link rel="stylesheet" href="https://unpkg.com/leaflet.curve@0.4.0/dist/leaflet.curve.min.css" />
     <style>
-        body { margin: 0; padding: 0; }
-        #map { height: 100vh; }
+        #map {
+            width: 100%;
+            height: 400px;
+        }
+        .controls {
+            margin: 10px 0;
+            padding: 10px;
+            background-color: #f8f9fa;
+            border-radius: 5px;
+            display: none;  /* Hidden by default */
+        }
     </style>
 </head>
 <body>
+    <header>
+        <h1>Satellite Tracker</h1>
+        <p>Track satellites and their paths to North Carolina</p>
+    </header>
+
+    <div class="controls" id="controls">
+        <!-- Controls can be used for additional features in the future -->
+    </div>
     <div id="map"></div>
+
     <script src="https://unpkg.com/leaflet@1.7.1/dist/leaflet.js"></script>
-    <script src="https://unpkg.com/leaflet.curve@0.4.0/dist/leaflet.curve.min.js"></script>
     <script>
         let satellitePaths = {};
         let map;
-        const NC_LON = -79.0; // North Carolina longitude reference
+        let currentPaths = []; // To keep track of currently shown paths
+
+        const NC_Lat = 35.5; // Latitude of North Carolina
+        const NC_Lon = -79.0; // Longitude of North Carolina
 
         // Initialize the map immediately
-        document.addEventListener("DOMContentLoaded", function () {
+        document.addEventListener("DOMContentLoaded", function() {
             initMap();
         });
 
         function initMap() {
-            const bounds = [
-                [-150, -185],
-                [150, 185]
-            ];
-            map = L.map("map", {
+            map = L.map('map', {
                 center: [35.5, -79.0],
                 zoom: 3,
                 maxZoom: 10,
-                minZoom: 2,
-                maxBounds: L.latLngBounds(bounds),
-                maxBoundsViscosity: 0.8,
-                crs: L.CRS.EPSG3857
+                minZoom: 2
             });
 
-            L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
+            L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
                 attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors',
                 noWrap: true
             }).addTo(map);
@@ -48,109 +62,141 @@
             loadSatelliteData(map);
         }
 
+        // Function to calculate "minutes from NC" based on current position
+        function calculateMinutesFromNC(lat, lon) {
+            const R = 6371; // Radius of the Earth in km
+            const dLat = (lat - NC_Lat) * Math.PI / 180;
+            const dLon = (lon - NC_Lon) * Math.PI / 180;
+            const a =
+                Math.sin(dLat / 2) * Math.sin(dLat / 2) +
+                Math.cos(NC_Lat * Math.PI / 180) * Math.cos(lat * Math.PI / 180) *
+                Math.sin(dLon / 2) * Math.sin(dLon / 2);
+            const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+            const distance = R * c; // Distance in km
+
+            // Assuming the satellite is moving at 7.12 km/s (satellite speed)
+            const speed = 7.12; // in km/s
+            const minutesFromNC = Math.round((distance / speed) / 60); // Convert distance to minutes
+
+            return minutesFromNC;
+        }
+
         async function loadSatelliteData(map) {
             try {
-                const response = await fetch("satellites.json");
+                const response = await fetch('satellites.json');
                 const data = await response.json();
 
                 if (data.satellites && Array.isArray(data.satellites)) {
-                    data.satellites.forEach((satellite) => {
-                        addSatellite(map, satellite);
+                    data.satellites.forEach(satellite => {
+                        const currentPos = satellite.current_position;
+
+                        // Calculate minutes from North Carolina based on current position
+                        const minutesFromNC = calculateMinutesFromNC(currentPos.lat, currentPos.lon);
+
+                        // Show paths if the satellite is to the west or north of North Carolina
+                        if (currentPos.lat >= NC_Lat || currentPos.lon < NC_Lon) {
+                            addSatellite(map, satellite, minutesFromNC);
+                        } else {
+                            addSatelliteWithoutPath(map, satellite, minutesFromNC);
+                        }
                     });
                 }
             } catch (error) {
-                console.error("Error loading satellite data:", error);
+                console.error('Error loading satellite data:', error);
             }
         }
 
-        function addSatellite(map, satellite) {
+        function addSatellite(map, satellite, minutesFromNC) {
             const currentPos = satellite.current_position;
             const futurePos = satellite.future_passes;
 
             // Add marker for current position
             const marker = L.marker([currentPos.lat, currentPos.lon])
                 .addTo(map)
-                .bindPopup(`
+                .bindPopup(` 
                     <h3>${satellite.name}</h3>
                     <p><strong>Time:</strong> ${currentPos.timestamp}</p>
                     <p><strong>Altitude:</strong> ${Math.round(currentPos.altitude)} km</p>
-                    <p><strong>Latitude:</strong> ${currentPos.lat.toFixed(4)}°</p>
-                    <p><strong>Longitude:</strong> ${currentPos.lon.toFixed(4)}°</p>
-                    <p><strong>Minutes from NC:</strong> ${futurePos[0]?.minutes_from_now || "N/A"}</p>
+                    <p><strong>Latitude:</strong> ${currentPos.lat}</p>
+                    <p><strong>Longitude:</strong> ${currentPos.lon}</p>
                     <p><a href="${satellite.details_url}" target="_blank">Learn More</a></p>
                 `);
 
             let pathSegments = [];
             let lastPoint = [currentPos.lat, currentPos.lon];
 
-            // Create path segments with dateline crossing adjustment
-            satellite.future_passes.forEach((pass) => {
+            // Add future path segments if the satellite is to the west of NC
+            futurePos.forEach(pass => {
                 const nextPoint = [pass.lat, pass.lon];
-                const segments = createWrappedPath(lastPoint, nextPoint);  // Correct path function for east-to-west
+                const segments = createWrappedPath(lastPoint, nextPoint);
                 pathSegments.push(...segments);
                 lastPoint = nextPoint;
             });
 
-            // Store and draw the Bézier curves
-            satellitePaths[satellite.name] = pathSegments.map(
-                (segment) =>
-                    L.curve(segment, {
-                        color: "#2196F3",
-                        weight: 2.5,
-                        opacity: 0.7,
-                        smoothFactor: 1.5,
-                        lineJoin: "round"
-                    })
+            // Store the paths for later display
+            satellitePaths[satellite.name] = pathSegments.map(segment =>
+                L.polyline(segment, {
+                    color: 'blue',
+                    weight: 2,
+                    opacity: 0.8
+                })
             );
 
-            // Add event listener to the marker
-            marker.on("click", function () {
+            // Add event listener to the marker to show path when clicked
+            marker.on('click', function() {
                 showPath(satellite.name);
             });
         }
 
+        function addSatelliteWithoutPath(map, satellite, minutesFromNC) {
+            const currentPos = satellite.current_position;
+
+            // Add marker for current position
+            const marker = L.marker([currentPos.lat, currentPos.lon])
+                .addTo(map)
+                .bindPopup(` 
+                    <h3>${satellite.name}</h3>
+                    <p><strong>Time:</strong> ${currentPos.timestamp}</p>
+                    <p><strong>Altitude:</strong> ${Math.round(currentPos.altitude)} km</p>
+                    <p><strong>Latitude:</strong> ${currentPos.lat}</p>
+                    <p><strong>Longitude:</strong> ${currentPos.lon}</p>
+                    <p><a href="${satellite.details_url}" target="_blank">Learn More</a></p>
+                `);
+        }
+
         function showPath(satelliteName) {
-            // Remove all currently shown paths
-            Object.keys(satellitePaths).forEach((name) => {
-                satellitePaths[name].forEach((path) => path.remove());
+            // Remove all current paths before showing the new one
+            currentPaths.forEach(path => {
+                path.remove();
             });
 
-            // Show the selected satellite's path
-            satellitePaths[satelliteName].forEach((path) => {
+            // Clear the current paths array
+            currentPaths = [];
+
+            // Show the path for the clicked satellite
+            satellitePaths[satelliteName].forEach(path => {
                 path.addTo(map);
+                currentPaths.push(path); // Store the new path in the currentPaths array
             });
         }
 
+        // Function to create path if the path crosses the dateline
         function createWrappedPath(start, end) {
-            let segments = [];
-            const startLon = start[1];
-            const endLon = end[1];
-
-            // Since satellites move east-to-west, we adjust the path when crossing the dateline
-            if (startLon < endLon) {
-                const midLat = (start[0] + end[0]) / 2;   // Midpoint latitude for smoother transition
-                const midLon = 180; // Crossing the dateline at 180°
-
-                // First segment from start to the dateline
-                segments.push([ 
-                    [start[0], startLon],
-                    [midLat, midLon]
-                ]);
-
-                // Second segment after crossing the dateline to the end point
-                segments.push([
-                    [midLat, -180], // Wrap to the opposite side of the dateline
-                    [end[0], endLon]
-                ]);
-            } else {
-                // If the satellite doesn't cross the dateline, we just draw the normal path
-                segments.push([
-                    [start[0], startLon],
-                    [end[0], endLon]
-                ]);
+            const diffLon = end[1] - start[1];
+            if (Math.abs(diffLon) > 180) {
+                if (diffLon > 0) {
+                    return [
+                        [[start[0], start[1]], [end[0], -180]],
+                        [[end[0], 180], [end[0], end[1]]]
+                    ];
+                } else {
+                    return [
+                        [[start[0], start[1]], [start[0], 180]],
+                        [[start[0], -180], [end[0], end[1]]]
+                    ];
+                }
             }
-
-            return segments; // Returning path segments
+            return [[[start[0], start[1]], [end[0], end[1]]]];
         }
     </script>
 </body>
