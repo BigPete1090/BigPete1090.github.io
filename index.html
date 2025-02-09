@@ -67,7 +67,7 @@
         window.onscroll = function() {
             scrollFunction();
         };
-    
+
         function scrollFunction() {
             var navbar = document.getElementById("navbar");
             if (document.body.scrollTop > 300 || document.documentElement.scrollTop > 300) {
@@ -84,11 +84,31 @@
 
         function satelliteProjection() {
             let year = parseInt(document.getElementById("satelliteProjectionInput").value);
-            // Linear regression model based on real satellite launch data (2018-2023)
-            let estimatedSatellites = (-10472 + (5.89 * year));
+            let satellitesLaunched;
+            
+            // Using real data
+            if (year < 1957) {
+                document.getElementById("satelliteProjectionResult").textContent = 
+                    "Please enter a year from 1957 onwards (first satellite launch)";
+                return;
+            }
+            
+            if (year >= 2020) {
+                // Modern era (2020+) - exponential growth
+                satellitesLaunched = Math.round(466 * Math.pow(1.455, (year - 2020)));
+            } else if (year >= 2010) {
+                // 2010-2019 - rapid growth period
+                satellitesLaunched = Math.round(78 * Math.pow(1.25, (year - 2010)));
+            } else if (year >= 1990) {
+                // 1990-2009 - steady growth
+                satellitesLaunched = Math.round(36 + (3.5 * (year - 1990)));
+            } else if (year >= 1957) {
+                // Early space age (1957-1989)
+                satellitesLaunched = Math.round(1 + (1.8 * (year - 1957)));
+            }
+
             document.getElementById("satelliteProjectionResult").textContent = 
-                `Estimated Satellites Launched in ${year}: ${Math.round(estimatedSatellites)}`;
+                `Estimated Satellites Launched in ${year}: ${satellitesLaunched}`;
         }
     </script>
 </body>
-
