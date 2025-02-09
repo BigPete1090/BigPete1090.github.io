@@ -17,7 +17,7 @@
             padding: 10px;
             background-color: #f8f9fa;
             border-radius: 5px;
-            display: none;  /* Hidden by default */
+            display: none;  
         }
     </style>
 </head>
@@ -28,7 +28,6 @@
     </header>
 
     <div class="controls" id="controls">
-        <!-- Controls can be used for additional features in the future -->
     </div>
     <div id="map"></div>
 
@@ -36,12 +35,11 @@
     <script>
         let satellitePaths = {};
         let map;
-        let currentPaths = []; // To keep track of currently shown paths
+        let currentPaths = []; 
 
         const NC_Lat = 35.5; // Latitude of North Carolina
         const NC_Lon = -78.0; // Longitude of North Carolina
 
-        // Initialize the map immediately
         document.addEventListener("DOMContentLoaded", function() {
             initMap();
         });
@@ -62,7 +60,6 @@
             loadSatelliteData(map);
         }
 
-        // Function to calculate "minutes from NC" based on current position
         function calculateMinutesFromNC(lat, lon) {
             const R = 6371; // Radius of the Earth in km
             const dLat = (lat - NC_Lat) * Math.PI / 180;
@@ -72,11 +69,10 @@
                 Math.cos(NC_Lat * Math.PI / 180) * Math.cos(lat * Math.PI / 180) *
                 Math.sin(dLon / 2) * Math.sin(dLon / 2);
             const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
-            const distance = R * c; // Distance in km
+            const distance = R * c; 
 
-            // Assuming the satellite is moving at 7.12 km/s (satellite speed)
-            const speed = 7.12; // in km/s
-            const minutesFromNC = Math.round((distance / speed) / 60); // Convert distance to minutes
+            const speed = 7.12; 
+            const minutesFromNC = Math.round((distance / speed) / 60);
 
             return minutesFromNC;
         }
@@ -90,10 +86,8 @@
                     data.satellites.forEach(satellite => {
                         const currentPos = satellite.current_position;
 
-                        // Calculate minutes from North Carolina based on current position
                         const minutesFromNC = calculateMinutesFromNC(currentPos.lat, currentPos.lon);
 
-                        // Show paths if the satellite is to the west or north of North Carolina
                         if (currentPos.lon < NC_Lon) {
                             addSatellite(map, satellite, minutesFromNC);
                         } else {
@@ -110,7 +104,6 @@
             const currentPos = satellite.current_position;
             const futurePos = satellite.future_passes;
 
-            // Add marker for current position
             const marker = L.marker([currentPos.lat, currentPos.lon])
                 .addTo(map)
                 .bindPopup(` 
@@ -125,7 +118,6 @@
             let pathSegments = [];
             let lastPoint = [currentPos.lat, currentPos.lon];
 
-            // Add future path segments if the satellite is to the west of NC
             futurePos.forEach(pass => {
                 const nextPoint = [pass.lat, pass.lon];
                 const segments = createWrappedPath(lastPoint, nextPoint);
@@ -133,7 +125,6 @@
                 lastPoint = nextPoint;
             });
 
-            // Store the paths for later display
             satellitePaths[satellite.name] = pathSegments.map(segment =>
                 L.polyline(segment, {
                     color: 'blue',
@@ -142,7 +133,6 @@
                 })
             );
 
-            // Add event listener to the marker to show path when clicked
             marker.on('click', function() {
                 showPath(satellite.name);
             });
@@ -151,7 +141,6 @@
         function addSatelliteWithoutPath(map, satellite, minutesFromNC) {
             const currentPos = satellite.current_position;
 
-            // Add marker for current position
             const marker = L.marker([currentPos.lat, currentPos.lon])
                 .addTo(map)
                 .bindPopup(` 
@@ -165,22 +154,18 @@
         }
 
         function showPath(satelliteName) {
-            // Remove all current paths before showing the new one
             currentPaths.forEach(path => {
                 path.remove();
             });
 
-            // Clear the current paths array
             currentPaths = [];
 
-            // Show the path for the clicked satellite
             satellitePaths[satelliteName].forEach(path => {
                 path.addTo(map);
-                currentPaths.push(path); // Store the new path in the currentPaths array
+                currentPaths.push(path); 
             });
         }
 
-        // Function to create path if the path crosses the dateline
         function createWrappedPath(start, end) {
             const diffLon = end[1] - start[1];
             if (Math.abs(diffLon) > 180) {
