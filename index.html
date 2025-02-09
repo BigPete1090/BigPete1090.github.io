@@ -92,7 +92,6 @@
                 return;
             }
 
-            // Calculate total satellites launched from 1957 to the input year
             for (let i = 1957; i <= year; i++) {
                 let satellitesLaunched = 0;
                 
@@ -109,7 +108,6 @@
                 totalSatellitesLaunched += satellitesLaunched;
             }
 
-            // Calculate active satellites (assuming an average lifespan of 10 years)
             for (let i = 1957; i <= year; i++) {
                 if (year - i <= 10) {
                     let satellitesLaunched = 0;
@@ -127,7 +125,6 @@
                 }
             }
 
-            // Display total number of satellites and active satellites
             document.getElementById("satelliteProjectionResult").textContent = 
                 `Total Satellites Launched by ${year}: ${totalSatellitesLaunched}`;
             document.getElementById("satelliteActiveResult").textContent = 
