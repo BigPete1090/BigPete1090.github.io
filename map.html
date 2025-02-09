@@ -1,5 +1,6 @@
 <!DOCTYPE html>
 <html lang="en">
+<script src="https://cdn.jsdelivr.net/npm/leaflet.curve@1.0.0/leaflet.curve.min.js"></script>
 <head>
     <title>Satellite Tracking Map</title>
     <link rel="stylesheet" href="style.css">
@@ -11,22 +12,6 @@
         #map {
             width: 100%;
             height: 400px;
-            display: none;
-        }
-        #viewMapButton {
-            padding: 10px 20px;
-            font-size: 16px;
-            background-color: white;
-            color: black;
-            border: none;
-            cursor: pointer;
-            margin-top: 20px;
-            margin-left: 20px;
-        }
-        #viewMapButton:hover {
-            background-color: var(--color-2);
-            color: white;
-
         }
         .controls {
             margin: 10px 0;
@@ -86,51 +71,49 @@
             let segments = [];
             const startLon = start[1];
             const endLon = end[1];
-            let diffLon = endLon - startLon;
-            const latDiff = end[0] - start[0];
-            
-            // Adjust the path for satellites east of NC to go around the world westward
-            if (startLon > NC_LON && diffLon > 0) {
-                // Go westward around the world
-                diffLon = -(360 - diffLon);
-            }
-            
-            // If crossing the international date line
-            if (Math.abs(diffLon) > 180) {
-                // Calculate how far along the path we need to split
-                const ratio = (180 - Math.abs(startLon)) / Math.abs(diffLon);
-                const splitLat = start[0] + (latDiff * ratio);
-                
-                if (diffLon > 0) {
-                    // Going eastward across dateline
+
+            // If the satellite starts east of NC, force a wrap across the dateline
+            if (startLon > -79.0) {
+                const midLon = startLon > 0 ? 180 : -180;
+                const midLat = (start[0] + end[0]) / 2; // Midpoint latitude for smoother transition
+
+                // Create exactly 2 segments
+                segments.push([ 
+                    [start[0], startLon],
+                    [midLat, midLon]
+                ]);
+                segments.push([
+                    [midLat, -midLon],
+                    [end[0], endLon]
+                ]);
+            } else {
+                // Standard case, check if crossing the dateline
+                let diffLon = endLon - startLon;
+                const latDiff = end[0] - start[0];
+
+                if (Math.abs(diffLon) > 180) {
+                    const midLon = startLon > 0 ? 180 : -180;
+                    const ratio = (midLon - startLon) / diffLon;
+                    const midLat = start[0] + latDiff * ratio;
+
+                    // Ensure max of 2 segments
                     segments.push([
                         [start[0], startLon],
-                        [splitLat, -180]
+                        [midLat, midLon]
                     ]);
                     segments.push([
-                        [splitLat, 180],
+                        [midLat, -midLon],
                         [end[0], endLon]
                     ]);
                 } else {
-                    // Going westward across dateline
                     segments.push([
                         [start[0], startLon],
-                        [splitLat, 180]
-                    ]);
-                    segments.push([
-                        [splitLat, -180],
                         [end[0], endLon]
                     ]);
                 }
-            } else {
-                // No date line crossing, single segment
-                segments.push([
-                    [start[0], startLon],
-                    [end[0], endLon]
-                ]);
             }
-            
-            return segments;
+
+            return segments.slice(0, 2); // Enforce max of 2 segments
         }
 
         async function loadSatelliteData(map) {
@@ -162,7 +145,6 @@
                     <p><strong>Latitude:</strong> ${currentPos.lat.toFixed(4)}°</p>
                     <p><strong>Longitude:</strong> ${currentPos.lon.toFixed(4)}°</p>
                     <p><strong>Minutes from NC:</strong> ${futurePos[0]?.minutes_from_now || 'N/A'}</p>
-                    <p><a href="${satellite.details_url}" target="_blank">Learn More</a></p>
                 `);
 
             let pathSegments = [];
