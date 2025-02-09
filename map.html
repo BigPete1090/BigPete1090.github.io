@@ -93,6 +93,7 @@
 
         function addSatellite(map, satellite) {
             const currentPos = satellite.current_position;
+            const futurePos = satellite.future_passes
             
             // Add marker for current position
             const marker = L.marker([currentPos.lat, currentPos.lon])
@@ -103,6 +104,7 @@
                     <p><strong>Altitude:</strong> ${Math.round(currentPos.altitude)} km</p>
                     <p><strong>Latitude:</strong> ${currentPos.lat}</p>
                     <p><strong>Longitude:</strong> ${currentPos.lon}</p>
+                    <p><strong>Minutes from NC:</strong> ${futurePos.minutes_from_now}</p>
                     <p><a href="${satellite.details_url}" target="_blank">Learn More</a></p>
                 `);
 
