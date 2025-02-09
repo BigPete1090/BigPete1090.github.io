@@ -1,58 +1,92 @@
-document.addEventListener("DOMContentLoaded", function () {
-    let mapContainer = document.getElementById("map");
-    mapContainer.style.display = "none";  // Hide the map initially
-
-    // Add event listener to the "View Map" button
-    document.getElementById("viewMapBtn").addEventListener("click", function () {
-        mapContainer.style.display = "block";  // Show the map container
-        initMap();  // Initialize the map when button is clicked
-    });
-});
-
 function initMap() {
-    // Initialize the map centered at (0, 0) with zoom level 2
     const map = L.map('map', {
-        center: [0, 0],  
-        zoom: 2,  
-        maxZoom: 5,  
-        worldCopyJump: false  // Prevents world duplication when zooming out
+        center: [35.5, -79.0],
+        zoom: 4,
+        maxZoom: 10,
+        minZoom: 2
     });
 
-    // Set the OpenStreetMap tiles for the map background
     L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
         attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors',
         noWrap: true
     }).addTo(map);
 
-    // Fetch satellite data from satellites.json
-    fetch('satellites.json')
-        .then(response => {
-            if (!response.ok) {
-                throw new Error(`HTTP error! Status: ${response.status}`);
-            }
-            return response.json();
-        })
+    fetch('https://raw.githubusercontent.com/BigPete1090/BigPete1090/main/satellites.json')
+        .then(response => response.json())
         .then(data => {
             if (!data.satellites || !Array.isArray(data.satellites)) {
                 throw new Error("Invalid satellite data format.");
             }
 
-            // Add markers for each satellite
-            data.satellites.forEach(satellite => {
-                if (typeof satellite.lat === 'number' && typeof satellite.lon === 'number') {
-                    // Create a marker for each satellite
-                    const marker = L.marker([satellite.lat, satellite.lon]).addTo(map);
+            console.log("Satellite data loaded successfully.");
 
-                    // Bind a popup with satellite information
+            data.satellites.forEach(satellite => {
+                if (satellite.current_position && satellite.future_passes) {
+                    // Create marker at current position
+                    let marker = L.marker([
+                        satellite.current_position.lat,
+                        satellite.current_position.lon
+                    ]).addTo(map);
+                    
                     marker.bindPopup(`
                         <h3>${satellite.name}</h3>
-                        <p>Launch Date: ${satellite.launch_date}</p>
+                        <p>Altitude: ${Math.round(satellite.current_position.altitude)} km</p>
+                        <p>Timestamp: ${satellite.current_position.timestamp}</p>
                         <p><a href="${satellite.details_url}" target="_blank">Learn More</a></p>
                     `);
-                } else {
-                    console.warn(`Invalid coordinates for satellite: ${satellite.name}`);
+
+                    // Create the complete path coordinates
+                    let pathCoordinates = [
+                        // Start with current position
+                        [satellite.current_position.lat, satellite.current_position.lon]
+                    ];
+
+                    // Add all future passes
+                    satellite.future_passes.forEach(pass => {
+                        pathCoordinates.push([pass.lat, pass.lon]);
+                    });
+
+                    // Extend the path beyond the last known point
+                    let lastPoints = pathCoordinates.slice(-2);
+                    if (lastPoints.length === 2) {
+                        // Calculate direction vector
+                        let dx = lastPoints[1][1] - lastPoints[0][1];
+                        let dy = lastPoints[1][0] - lastPoints[0][0];
+                        
+                        // Add additional points to extend the path
+                        for (let i = 1; i <= 5; i++) {
+                            pathCoordinates.push([
+                                lastPoints[1][0] + dy * i,
+                                lastPoints[1][1] + dx * i
+                            ]);
+                        }
+                    }
+
+                    // Draw the path
+                    let pathLine = L.polyline(pathCoordinates, {
+                        color: 'blue',
+                        weight: 2,
+                        opacity: 0.8,
+                        dashArray: '5, 10' // Make the extended portion dashed
+                    }).addTo(map);
+
+                    // Animate the satellite
+                    animateSatellite(marker, pathLine, pathCoordinates);
                 }
             });
         })
-        .catch(error => console.error('Error loading satellite data:', error));
+        .catch(error => {
+            console.error('Error loading satellite data:', error);
+        });
+}
+
+function animateSatellite(marker, pathLine, pathCoords, index = 0) {
+    if (index >= pathCoords.length) index = 0;
+
+    marker.setLatLng(pathCoords[index]);
+    pathLine.setLatLngs(pathCoords.slice(0, index + 1));
+
+    setTimeout(() => {
+        animateSatellite(marker, pathLine, pathCoords, index + 1);
+    }, 100);
 }
