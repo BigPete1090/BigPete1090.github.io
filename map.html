@@ -11,19 +11,6 @@
         #map {
             width: 100%;
             height: 400px;
-            display: none;
-        }
-        #viewMapButton {
-            padding: 10px 20px;
-            font-size: 16px;
-            background-color: #007bff;
-            color: white;
-            border: none;
-            cursor: pointer;
-            margin-top: 20px;
-        }
-        #viewMapButton:hover {
-            background-color: #0056b3;
         }
         .controls {
             margin: 10px 0;
@@ -40,7 +27,6 @@
         <p>Track satellites and their paths to North Carolina</p>
     </header>
 
-    <button id="viewMapButton">View Map</button>
     <div class="controls" id="controls">
         <!-- Controls can be used for additional features in the future -->
     </div>
@@ -51,11 +37,9 @@
         let satellitePaths = {};
         let map;
 
-        document.getElementById("viewMapButton").addEventListener("click", function() {
-            document.getElementById('map').style.display = "block";
-            document.getElementById('controls').style.display = "block";
+        // Initialize the map immediately
+        document.addEventListener("DOMContentLoaded", function() {
             initMap();
-            this.style.display = "none";
         });
 
         function initMap() {
@@ -113,7 +97,7 @@
             // Add marker for current position
             const marker = L.marker([currentPos.lat, currentPos.lon])
                 .addTo(map)
-                .bindPopup(`
+                .bindPopup(` 
                     <h3>${satellite.name}</h3>
                     <p><strong>Time:</strong> ${currentPos.timestamp}</p>
                     <p><strong>Altitude:</strong> ${Math.round(currentPos.altitude)} km</p>
